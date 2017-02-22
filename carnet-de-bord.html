@@ -8,7 +8,7 @@
                 <img ng-src="/userbook/avatar/[[ widget.getChildId(widget.myeleve) ]]?thumbnail=100x100"/>
             </figure>
             <div>
-                <span>[[ widget.getTag('Prenom', widget.myeleve) ]]</span> <span> [[ widget.getTag('Nom', widget.myeleve) ]]</span>
+                <span>[[ widget.getFirstName(widget.myeleve) ]]</span> <span> [[ widget.getLastName(widget.myeleve) ]]</span>
             </div>
         </div>
     </div>
@@ -19,7 +19,7 @@
             <li class="avatar"
                 ng-repeat="eleve in widget.eleves"
                 ng-click="widget.getEleve(eleve)"
-                ng-class="{'selected': widget.getTag('Prenom', eleve) === widget.getTag('Prenom', widget.myeleve) }" >
+                ng-class="{'selected': widget.getFirstName(eleve) === widget.getFirstName(widget.myeleve) }" >
 
                  <figure ng-if="widget.getChildId(eleve)">
                      <img ng-src="/userbook/avatar/[[ widget.getChildId(eleve) ]]?thumbnail=100x100"/>
@@ -29,7 +29,7 @@
                  </figure>
 
                  <div>
-                     <span>[[ widget.getTag('Prenom', eleve) ]]</span>
+                     <span>[[ widget.getFirstName(eleve) ]]</span>
                  </div>
             </li>
         </ul>
@@ -76,7 +76,7 @@
 
                 <span ng-if="widget.model.me.type != 'ELEVE' ">
                     <i18n>logBook.of</i18n>
-                    [[widget.getTag('Prenom', widget.myeleve)]]
+                    [[widget.getFirstName(widget.myeleve)]]
                 </span>
             </h2>
 
@@ -88,7 +88,7 @@
                     </p>
 
                     <p ng-if="!item.subsections && item.pageUrl">
-                        <a target="_blank" href="[[widget.structureAddress]]/[[widget.userStatus()]].html?page=[[ item.pageUrl ]]">
+                        <a target="_blank" href="[[widget.getPageUrl(widget.currentContentType, item, widget.userStatus(), widget.structureAddress)]]">
                         <!-- <a ng-if="!item.subsections && item.pageUrl" class="right-magnet" target="_blank" tooltip="logBook.target.tooltip" href="[[widget.structureAddress]]/[[widget.userStatus()]].html?sessionENT=[[ widget.getSession() ]]&page=[[ item.pageUrl ]]"> -->
                             <span>•</span>[[ item.value ]]
                             <i class="new-tab right-magnet" tooltip="logBook.target.tooltip"></i>
@@ -101,7 +101,7 @@
                         [[ item.value ]]
                     </h4>
                     <h4 ng-if="item.subsections && item.pageUrl">
-                        <a target="_blank" href="[[widget.structureAddress]]/[[widget.userStatus()]].html?page=[[ item.pageUrl ]]">
+                        <a target="_blank" href="[[widget.getPageUrl(widget.currentContentType, item, widget.userStatus(), widget.structureAddress)]]">
                             [[ item.value ]]
                             <i class="new-tab right-magnet" tooltip="logBook.target.tooltip"></i>
                         </a>
@@ -112,7 +112,7 @@
 
                             <b ng-if="!subsection.pageUrl">[[ subsection.header ]]</b>
 
-                            <a ng-if="subsection.pageUrl" target="_blank" href="[[widget.structureAddress]]/[[widget.userStatus()]].html?page=[[ subsection.pageUrl ]]">
+                            <a ng-if="subsection.pageUrl" target="_blank" href="[[widget.getPageUrl(widget.currentContentType, item, widget.userStatus(), widget.structureAddress)]]">
                                 <b>[[ subsection.header ]]
                                     <i class="new-tab right-magnet" tooltip="logBook.target.tooltip"></i>
                                 </b>

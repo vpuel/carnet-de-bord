@@ -2,9 +2,33 @@
 var widget = model.widgets.findWidget("carnet-de-bord");
 widget.model = model;
 
-widget.getTag = function(tagName, xml){
-    return $(xml).find(tagName).text()
+function Student() {
+
+	this.id; //String
+	this.firstName; //String
+	this.lastName; //String
+    this.displayName; //String
 }
+
+function Homework() {
+	this.matiere;
+	this.pageUrl;
+	this.delivdate;
+	this.descr;
+	this.id; //String
+}
+
+widget.getFirstName = function (eleve) {
+	return widget.getTag('Prénom', eleve);
+};
+
+widget.getLastName = function (eleve) {
+	return widget.getTag('Nom', eleve);
+};
+
+widget.getTag = function(tagName, xml){
+    return $(xml).find(tagName).text();
+};
 
 widget.userStatus = function(){
     if(widget.model.me.profiles.indexOf('Relative') >= 0){
@@ -12,7 +36,7 @@ widget.userStatus = function(){
     }else{
         return 'eleve'
     }
-}
+};
 
 widget.getChildId = function(eleve){
     var xmlFirstName = widget.getTag('Prenom', eleve);
@@ -48,7 +72,32 @@ widget.getSession = function(){
         return $(widget.myeleve).attr('sessionENT')
 }
 
+widget.getPageUrl = function(type, item, userStatus, structure) {
+	if (type.title === "diary") {
+		return  item.pageUrl;
+	} else {
+		return structure + "/" + userStatus + "html?page=" + item.pageUrl;
+	}
+}
 
+widget.startDate = moment().format('YYYY-MM-DD');
+widget.endDate = moment().day(12).format('YYYY-MM-DD'); //set to friday next week
+
+widget.getUserEtabIdsAsString = function () {
+    var etabIds = "";
+
+    model.me.structures.forEach(function (etabId) {
+        etabIds += etabId + ":";
+    });
+
+    return etabIds;
+};
+
+widget.structures = 'test';
+widget.structureAddress = {};
+widget.structureId = {};
+
+widget.homeworks = {}; //caching system
 
 widget.contentTypes = [
     {
@@ -177,51 +226,62 @@ widget.contentTypes = [
         icon: "homeworks",
         compact: "",
         full: [],
-        getContent: function(myeleve, compact){
+        getContent: function(myeleve){
 
             var that = this
             var allWorks = []
             that.compact = false;
             that.full = false;
+			
+			var studentIds = [];
+			
+			if (widget.model.me.type != 'ELEVE' && model.child) {
+				studentIds = model.children;
+			} else {
+				studentIds[0] = model.me.userId;
+			}		
+			
+			studentIds.forEach(function(studentId) {
+				
+				var currentId = (widget.model.me.type === 'ELEVE') ? studentId : widget.getChildId(myeleve);
+				
+				if (currentId == studentId) {
+					if (studentId in widget.homeworks) {
+						that.full = widget.homeworks[studentId]; //gets content from cache		
+					} else {
+						http().get('/diary/homework/' + widget.getUserEtabIdsAsString() + '/' + widget.startDate + '/' + widget.endDate + '/' + studentId)
+							.done(function(homeworks){
+							
+							homeworks.forEach(function(sqlHomework){					
+								var homework = new Homework();
+								homework.id = sqlHomework.id;
+								homework.pageUrl = "/diary#/editHomeworkView/" + sqlHomework.id;
+								homework.delvdate = moment(sqlHomework.homework_due_date);
+								homework.descr = sqlHomework.homework_description;
+								homework.matiere = lang.translate('logBook.new.homework') + " " + sqlHomework.subject_label;
 
-            var iswork = $(myeleve).find('PageCahierDeTextes CahierDeTextes TravailAFaire Descriptif').text()
-            if (iswork) {
-
-                var diaries = $(myeleve).find('PageCahierDeTextes CahierDeTextes');
-                $(diaries).each(function(i, diary){
-                    if ($(diary).find('TravailAFaire Descriptif').text()) {
-
-                        var matiere = lang.translate('logBook.new.homework')+" "+$(diary).find('Matiere').text()
-                        var works = $(diary).find('TravailAFaire');
-                        var subsections = []
-
-                        $(works).each(function(i, work){
-
-                            var pageUrl = $(work).attr('page');
-                            var matiereFirst = $(work).parent().find('Matiere').text()
-                            var delivdate = moment($(work).find('PourLe').text())
-                            delivdate = delivdate.format('DD/MM/YYYY');
-                            delivdate = lang.translate('logBook.for')+" "+delivdate
-                            var descr = $(work).find('Descriptif');
-                            descr = descr.html(descr.text()).text();
-
-                            subsections.push({
-                                header: delivdate,
-                                content: descr,
-                                pageUrl: pageUrl
-                            })
-                        })
-
-                        allWorks.push({
-                            value: matiere,
-                            subsections: subsections
-                        });
-                        that.compact = allWorks[0].value+" "+allWorks[0].subsections[0].header
-                    }
-                })
-
-                that.full = allWorks
-            }
+								allWorks.push({
+									value: homework.matiere,
+									pageUrl: homework.pageUrl
+									});					
+							});
+							
+							if(allWorks[0]) {
+								that.compact = allWorks[0].value;
+							} else {
+								that.compact = 'Pas de devoir';
+							}
+							
+							that.full = allWorks;
+							widget.homeworks[studentId] = that.full;
+							model.widgets.apply();
+						})
+						.error(function(errorMsg){
+							widget.errorMsg = 'Error getting homework';
+						});									
+					}	
+				}			
+			});
         },
         lightboxTitle: "logBook.diary.all"
     },
@@ -288,20 +348,20 @@ widget.contentTypes = [
     }
 ]
 
-widget.showLightbox = false
+widget.showLightbox = false;
 
 widget.getEleve = function(eleve){
-    widget.myeleve = eleve
+    widget.myeleve = eleve;
     widget.contentTypes.forEach(function(type){
-       type.getContent(widget.myeleve)
+       type.getContent(widget.myeleve);
     });
-}
+};
 
 widget.openLightBox = function(contentType, myeleve){
-    widget.currentContentType = contentType
-    widget.currentEleve = myeleve
-    widget.showLightbox = true
-}
+    widget.currentContentType = contentType;
+    widget.currentEleve = myeleve;
+    widget.showLightbox = true;
+};
 
 http().get('/sso/pronote')
     .done(function(structures){
